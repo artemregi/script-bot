@@ -16,19 +16,36 @@ def download_audio(url: str) -> str:
     file_id = str(uuid.uuid4())
     outtmpl = os.path.join(TEMP_DIR, f"{file_id}.%(ext)s")
 
+    is_youtube = any(x in url for x in ('youtube.com', 'youtu.be'))
+
     ydl_opts = {
         'format': 'bestaudio/best',
         'outtmpl': outtmpl,
         'quiet': True,
         'no_warnings': True,
         'noprogress': True,
+        'retries': 3,
         'http_headers': {
             'User-Agent': (
-                'Mozilla/5.0 (Windows NT 10.0; Win64; x64) '
-                'AppleWebKit/537.36 (KHTML, like Gecko) '
-                'Chrome/120.0.0.0 Safari/537.36'
+                'com.google.ios.youtube/19.29.1 '
+                'CFNetwork/1408.0.4 Darwin/22.5.0'
+                if is_youtube else
+                'Mozilla/5.0 (iPhone; CPU iPhone OS 17_0 like Mac OS X) '
+                'AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.0 '
+                'Mobile/15E148 Safari/604.1'
             )
         },
+        **(
+            {
+                'extractor_args': {
+                    'youtube': {
+                        'player_client': ['ios', 'mweb'],
+                        'player_skip': ['webpage'],
+                    }
+                }
+            }
+            if is_youtube else {}
+        ),
     }
 
     with yt_dlp.YoutubeDL(ydl_opts) as ydl:
