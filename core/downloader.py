@@ -1,5 +1,5 @@
 import os
-import shutil
+import glob
 import uuid
 import yt_dlp
 
@@ -7,32 +7,21 @@ import yt_dlp
 TEMP_DIR = os.path.join(os.path.dirname(__file__), '..', 'temp')
 
 
-def _find_ffmpeg() -> str | None:
-    """Ищет ffmpeg в системе."""
-    return shutil.which('ffmpeg')
-
-
 def download_audio(url: str) -> str:
     """
     Скачивает аудио из TikTok / Instagram / YouTube.
-    Возвращает путь к .mp3 файлу.
+    Возвращает путь к аудио файлу (m4a/webm/mp4 — без ffmpeg).
     """
     os.makedirs(TEMP_DIR, exist_ok=True)
-    output_path = os.path.join(TEMP_DIR, f"{uuid.uuid4()}.mp3")
-
-    ffmpeg_path = _find_ffmpeg()
+    file_id = str(uuid.uuid4())
+    outtmpl = os.path.join(TEMP_DIR, f"{file_id}.%(ext)s")
 
     ydl_opts = {
         'format': 'bestaudio/best',
-        'outtmpl': output_path.replace('.mp3', '.%(ext)s'),
-        'postprocessors': [{
-            'key': 'FFmpegExtractAudio',
-            'preferredcodec': 'mp3',
-            'preferredquality': '128',
-        }],
+        'outtmpl': outtmpl,
         'quiet': True,
         'no_warnings': True,
-        'ffmpeg_location': os.path.dirname(ffmpeg_path) if ffmpeg_path else None,
+        'noprogress': True,
         'http_headers': {
             'User-Agent': (
                 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) '
@@ -45,7 +34,12 @@ def download_audio(url: str) -> str:
     with yt_dlp.YoutubeDL(ydl_opts) as ydl:
         ydl.download([url])
 
-    return output_path
+    # Найти скачанный файл по file_id
+    matches = glob.glob(os.path.join(TEMP_DIR, f"{file_id}.*"))
+    if not matches:
+        raise FileNotFoundError("Аудио файл не найден после загрузки")
+
+    return matches[0]
 
 
 def cleanup(file_path: str) -> None:
