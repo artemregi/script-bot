@@ -5,9 +5,19 @@ from dotenv import load_dotenv
 load_dotenv()
 
 client = Groq(api_key=os.getenv("GROQ_API_KEY"))
-MODEL = os.getenv("SCRIPT_MODEL", "kimi-k2")
+MODEL = os.getenv("SCRIPT_MODEL", "llama-3.3-70b-versatile")
 
-SYSTEM_PROMPT = """Ты — профессиональный сценарист для коротких вирусных видео.
+TRANSLATE_PROMPT = """Переведи текст на русский язык.
+
+Требования к переводу:
+- Максимально нативный и естественный русский язык
+- Звучит как живая разговорная речь, не как перевод
+- Сохраняй смысл и интонацию оригинала
+- Адаптируй идиомы и выражения, не переводи дословно
+
+Верни ТОЛЬКО перевод, без пояснений."""
+
+SCRIPT_PROMPT = """Ты — профессиональный сценарист для коротких вирусных видео.
 
 Ты получишь транскрипт видео на английском языке.
 
@@ -33,14 +43,26 @@ SYSTEM_PROMPT = """Ты — профессиональный сценарист 
 Верни ТОЛЬКО текст сценария, без пояснений и заголовков секций."""
 
 
-def generate_script(transcript: str) -> str:
-    """
-    Генерирует русскоязычный сценарий на основе транскрипта.
-    """
+def translate(transcript: str) -> str:
+    """Нативный перевод транскрипта на русский язык."""
     response = client.chat.completions.create(
         model=MODEL,
         messages=[
-            {"role": "system", "content": SYSTEM_PROMPT},
+            {"role": "system", "content": TRANSLATE_PROMPT},
+            {"role": "user", "content": transcript},
+        ],
+        temperature=0.3,
+        max_tokens=1500,
+    )
+    return response.choices[0].message.content.strip()
+
+
+def generate_script(transcript: str) -> str:
+    """Генерирует новый русскоязычный сценарий на основе транскрипта."""
+    response = client.chat.completions.create(
+        model=MODEL,
+        messages=[
+            {"role": "system", "content": SCRIPT_PROMPT},
             {"role": "user", "content": f"ТРАНСКРИПТ:\n\n{transcript}"},
         ],
         temperature=0.8,

@@ -9,7 +9,7 @@ from dotenv import load_dotenv
 
 from core.downloader import download_audio, cleanup
 from core.transcriber import transcribe
-from core.generator import generate_script
+from core.generator import generate_script, translate
 from core.humanizer import humanize
 
 load_dotenv()
@@ -62,23 +62,33 @@ async def handle_url(message: Message) -> None:
 
         # Шаг 2: Транскрипция
         transcript = transcribe(audio_path)
-        await status.edit_text("✍️ Пишу сценарий...")
+        await status.edit_text("🌍 Перевожу на русский...")
 
-        # Шаг 3: Генерация сценария
+        # Шаг 3: Нативный перевод
+        translation = translate(transcript)
+        await status.edit_text("✍️ Генерирую сценарий...")
+
+        # Шаг 4: Генерация сценария
         script = generate_script(transcript)
-        await status.edit_text("✨ Делаю текст живым...")
-
-        # Шаг 4: Humanizer
         final_script = humanize(script)
 
-        await status.edit_text("✅ Готово!")
-        await message.answer(final_script)
+        await status.delete()
+
+        await message.answer(
+            f"📝 *Версия 1 — Перевод оригинала:*\n\n{translation}",
+            parse_mode="Markdown"
+        )
+        await message.answer(
+            f"🎬 *Версия 2 — Готовый сценарий:*\n\n{final_script}",
+            parse_mode="Markdown"
+        )
 
     except Exception as e:
-        logging.error(f"Error processing {url}: {e}")
+        logging.error(f"Error processing {url}: {e}", exc_info=True)
         await status.edit_text(
-            "❌ Не удалось обработать видео.\n\n"
-            "Убедись, что ссылка рабочая и видео публичное."
+            f"❌ Ошибка при обработке видео.\n\n"
+            f"`{type(e).__name__}: {str(e)[:200]}`",
+            parse_mode="Markdown"
         )
     finally:
         if audio_path:
