@@ -19,7 +19,7 @@ def download_audio(url: str) -> str:
     is_youtube = any(x in url for x in ('youtube.com', 'youtu.be'))
 
     ydl_opts = {
-        'format': 'bestaudio/best',
+        'format': 'bestaudio[ext=m4a]/bestaudio/best[height<=480]/best',
         'outtmpl': outtmpl,
         'quiet': True,
         'no_warnings': True,
