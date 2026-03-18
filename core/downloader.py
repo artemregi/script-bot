@@ -1,9 +1,15 @@
 import os
+import shutil
 import uuid
 import yt_dlp
 
 
 TEMP_DIR = os.path.join(os.path.dirname(__file__), '..', 'temp')
+
+
+def _find_ffmpeg() -> str | None:
+    """Ищет ffmpeg в системе."""
+    return shutil.which('ffmpeg')
 
 
 def download_audio(url: str) -> str:
@@ -13,6 +19,8 @@ def download_audio(url: str) -> str:
     """
     os.makedirs(TEMP_DIR, exist_ok=True)
     output_path = os.path.join(TEMP_DIR, f"{uuid.uuid4()}.mp3")
+
+    ffmpeg_path = _find_ffmpeg()
 
     ydl_opts = {
         'format': 'bestaudio/best',
@@ -24,6 +32,7 @@ def download_audio(url: str) -> str:
         }],
         'quiet': True,
         'no_warnings': True,
+        'ffmpeg_location': os.path.dirname(ffmpeg_path) if ffmpeg_path else None,
         'http_headers': {
             'User-Agent': (
                 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) '
