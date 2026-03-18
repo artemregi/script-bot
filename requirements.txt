@@ -1,5 +1,5 @@
 aiogram==3.7.0
 groq>=1.0.0
-yt-dlp==2024.12.23
+yt-dlp>=2025.1.1
 python-dotenv==1.0.1
 aiofiles==23.2.1

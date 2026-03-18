@@ -1,56 +1,71 @@
 import os
 import glob
 import uuid
+import tempfile
 import yt_dlp
 
 
 TEMP_DIR = os.path.join(os.path.dirname(__file__), '..', 'temp')
+INSTAGRAM_COOKIES = os.environ.get('INSTAGRAM_COOKIES', '')
+
+
+def _write_cookies_file(content: str):
+    if not content.strip():
+        return None
+    f = tempfile.NamedTemporaryFile(mode='w', suffix='.txt', delete=False)
+    f.write(content)
+    f.close()
+    return f.name
 
 
 def download_audio(url: str) -> str:
     """
     Скачивает аудио из TikTok / Instagram / YouTube.
-    Возвращает путь к аудио файлу (m4a/webm/mp4 — без ffmpeg).
+    Возвращает путь к аудио файлу (без ffmpeg).
     """
     os.makedirs(TEMP_DIR, exist_ok=True)
     file_id = str(uuid.uuid4())
     outtmpl = os.path.join(TEMP_DIR, f"{file_id}.%(ext)s")
 
     is_youtube = any(x in url for x in ('youtube.com', 'youtu.be'))
+    is_instagram = 'instagram.com' in url
+
+    cookies_file = None
+    if is_instagram:
+        cookies_file = _write_cookies_file(INSTAGRAM_COOKIES)
 
     ydl_opts = {
-        'format': 'bestaudio[ext=m4a]/bestaudio/best[height<=480]/best',
+        'format': 'bestaudio/best',
         'outtmpl': outtmpl,
         'quiet': True,
         'no_warnings': True,
         'noprogress': True,
-        'retries': 3,
-        'http_headers': {
-            'User-Agent': (
-                'com.google.ios.youtube/19.29.1 '
-                'CFNetwork/1408.0.4 Darwin/22.5.0'
-                if is_youtube else
-                'Mozilla/5.0 (iPhone; CPU iPhone OS 17_0 like Mac OS X) '
-                'AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.0 '
-                'Mobile/15E148 Safari/604.1'
-            )
-        },
+        'retries': 5,
+        'socket_timeout': 30,
         **(
             {
                 'extractor_args': {
                     'youtube': {
-                        'player_client': ['tv_embedded', 'ios', 'web'],
+                        'player_client': ['android_music', 'android', 'ios'],
+                        'player_skip': ['webpage', 'configs'],
                     }
                 }
             }
             if is_youtube else {}
         ),
+        **(
+            {'cookiefile': cookies_file}
+            if cookies_file else {}
+        ),
     }
 
-    with yt_dlp.YoutubeDL(ydl_opts) as ydl:
-        ydl.download([url])
+    try:
+        with yt_dlp.YoutubeDL(ydl_opts) as ydl:
+            ydl.download([url])
+    finally:
+        if cookies_file and os.path.exists(cookies_file):
+            os.remove(cookies_file)
 
-    # Найти скачанный файл по file_id
     matches = glob.glob(os.path.join(TEMP_DIR, f"{file_id}.*"))
     if not matches:
         raise FileNotFoundError("Аудио файл не найден после загрузки")
