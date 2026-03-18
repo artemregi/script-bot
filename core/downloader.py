@@ -39,8 +39,7 @@ def download_audio(url: str) -> str:
             {
                 'extractor_args': {
                     'youtube': {
-                        'player_client': ['ios', 'mweb'],
-                        'player_skip': ['webpage'],
+                        'player_client': ['tv_embedded', 'ios', 'web'],
                     }
                 }
             }
