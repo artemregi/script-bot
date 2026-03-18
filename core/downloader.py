@@ -1,6 +1,7 @@
 import os
 import glob
 import uuid
+import base64
 import tempfile
 import yt_dlp
 
@@ -13,6 +14,12 @@ YOUTUBE_COOKIES = os.environ.get('YOUTUBE_COOKIES', '')
 def _write_cookies_file(content: str):
     if not content.strip():
         return None
+    # Support base64-encoded cookies (Railway env var friendly)
+    try:
+        decoded = base64.b64decode(content.strip()).decode('utf-8')
+        content = decoded
+    except Exception:
+        pass  # Not base64, use as plain text
     f = tempfile.NamedTemporaryFile(mode='w', suffix='.txt', delete=False)
     f.write(content)
     f.close()
