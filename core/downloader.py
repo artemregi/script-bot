@@ -7,6 +7,7 @@ import yt_dlp
 
 TEMP_DIR = os.path.join(os.path.dirname(__file__), '..', 'temp')
 INSTAGRAM_COOKIES = os.environ.get('INSTAGRAM_COOKIES', '')
+YOUTUBE_COOKIES = os.environ.get('YOUTUBE_COOKIES', '')
 
 
 def _write_cookies_file(content: str):
@@ -33,6 +34,8 @@ def download_audio(url: str) -> str:
     cookies_file = None
     if is_instagram:
         cookies_file = _write_cookies_file(INSTAGRAM_COOKIES)
+    elif is_youtube:
+        cookies_file = _write_cookies_file(YOUTUBE_COOKIES)
 
     ydl_opts = {
         'format': 'bestaudio/best',
